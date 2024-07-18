@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 process-memory = "0.5.0"
+sysinfo = "0.30.13"
 winapi = { version = "0.3", features = ["tlhelp32", "psapi", "handleapi", "processthreadsapi"] }
