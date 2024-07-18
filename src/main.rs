@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use process_memory::{Architecture, Memory, DataMember, Pid, ProcessHandleExt, TryIntoProcessHandle};
+use process_memory::*;
 use std::ffi::{CStr, CString};
 use std::ptr::{null, null_mut};
 use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS, TH32CS_SNAPMODULE, TH32CS_SNAPMODULE32, MODULEENTRY32};
@@ -76,7 +76,6 @@ fn get_module_base_address(pid: u32, module_name: &str) -> u64 {
     }
 }
 
-    use process_memory::*;
 
 /*
 Reads memory from the process with the given PID at the given address.
@@ -158,7 +157,6 @@ fn main() -> std::io::Result<()> {
                 match process_handle.copy_address(current_address.try_into().unwrap(), &mut buffer) {
                     Ok(_) => {
                         let value = u32::from_ne_bytes(buffer.clone().try_into().unwrap());
-                        // println!("Value: {} ?= {}", value, known_value);
                         if value == known_value {
                             addresses.push(current_address);
                         }
@@ -201,33 +199,23 @@ fn main() -> std::io::Result<()> {
     }
     
 
+    let mut first_run_1: bool = true;
+    let mut second_scan_addresses: Vec<u64> = Vec::new();
+    while (second_scan_addresses.len() > 4 ) | first_run_1 {
+        first_run_1 = false;
+        println!("Input new HP value: ");
+        let mut input: String = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let known_hp_value: u32 = input.trim().parse().unwrap();
 
-    println!("Input current HP value: ");
-    let mut input: String = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let known_hp_value: u32 = input.trim().parse().unwrap();
-
-    // First scan
-    let first_scan_addresses: Vec<u64> = scan_memory_for_u32(
-        &process_handle, 
-        base_address, 
-        known_hp_value, 
-        Vec::new());
-    println!("First scan found addresses: {:?}", first_scan_addresses.len());
-    
-    println!("Input new HP value: ");    
-    let mut input: String = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let known_hp_value: u32 = input.trim().parse().unwrap();
-
-    
-    // Second scan to confirm the address
-    let second_scan_addresses: Vec<u64> = scan_memory_for_u32(
-        &process_handle, 
-        base_address, 
-        known_hp_value, 
-        first_scan_addresses);
-    println!("Second scan found addresses: {:?}", second_scan_addresses.len());
+        // Second scan to confirm the address
+        second_scan_addresses = scan_memory_for_u32(
+            &process_handle, 
+            base_address, 
+            known_hp_value, 
+            second_scan_addresses);
+        println!("New scan found addresses: {:?}", second_scan_addresses.len());
+    }
 
     if second_scan_addresses.len() < 4 {
         for address in second_scan_addresses.clone() {
@@ -264,6 +252,41 @@ fn main() -> std::io::Result<()> {
     println!("Luck: {}", read_memory::<u32>(pid, offsets["luck"]) as u32);
     println!("Spikes: {}", read_memory::<u32>(pid, offsets["spikes"]) as u32);
     println!("Crit Chance: {}", read_memory::<u32>(pid, offsets["crit_chance"]) as u32);
+
+    write_memory::<u32>(pid, offsets["hp"], 69);
+
+    let mut first_run_2: bool = true;
+    let mut scan_potion_addresses: Vec<u64> = Vec::new();
+    while (scan_potion_addresses.len() > 4) | first_run_2 {
+        first_run_2 = false;
+        println!("Input new Healing Potion count: ");
+        let mut input: String = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let known_value: u32 = input.trim().parse().unwrap();
+
+        scan_potion_addresses = scan_memory_for_u32(
+            &process_handle,
+            base_address,
+            known_value,
+            scan_potion_addresses,
+        );
+        println!("Next scan found addresses: {:?}", scan_potion_addresses.len());
+    }
+
+    if scan_potion_addresses.len() < 4 {
+        for address in scan_potion_addresses.clone() {
+            println!("[DEBUG] offset_potion: {:#X}: {:#X}", address, read_memory::<u32>(pid, address));
+        }
+    }
+
+    let offset_game_potion: u64 = scan_potion_addresses[0];
+    offsets.insert("healing_potion".to_string(), offset_game_potion);
+    offsets.insert("rune_of_discard".to_string(), offset_game_potion - 0x4);
+    offsets.insert("gold_max".to_string(), offset_game_potion - 0x24);
+
+    println!("Healing Potion: {}", read_memory::<u32>(pid, offsets["healing_potion"]) as u32);
+    println!("Rune of Discard: {}", read_memory::<u32>(pid, offsets["rune_of_discard"]) as u32);
+    println!("Gold Max: {}", read_memory::<u32>(pid, offsets["gold_max"]) as u32);
 
     Ok(())
 }
