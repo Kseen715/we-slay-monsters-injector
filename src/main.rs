@@ -44,7 +44,8 @@ fn get_pid(process_name: &str) -> u32 {
 
 fn get_module_base_address(pid: u32, module_name: &str) -> u64 {
     unsafe {
-        let snapshot: HANDLE = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
+        let snapshot: HANDLE = CreateToolhelp32Snapshot(
+            TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
         if snapshot == null_mut() {
             return 0;
         }
@@ -142,7 +143,9 @@ fn main() -> std::io::Result<()> {
 
     
     // Function to scan memory for the known HP value
-    fn scan_memory_for_i32(process_handle: &ProcessHandle, base_address: u64, known_value: u32, known_addresses: Vec<u64>) -> Vec<u64> {
+    fn scan_memory_for_u32(
+        process_handle: &ProcessHandle, base_address: u64, 
+        known_value: u32, known_addresses: Vec<u64>) -> Vec<u64> {
         let mut addresses: Vec<u64> = Vec::new();
         addresses.reserve(200000);
 
@@ -205,7 +208,11 @@ fn main() -> std::io::Result<()> {
     let known_hp_value: u32 = input.trim().parse().unwrap();
 
     // First scan
-    let first_scan_addresses: Vec<u64> = scan_memory_for_i32(&process_handle, base_address, known_hp_value, Vec::new());
+    let first_scan_addresses: Vec<u64> = scan_memory_for_u32(
+        &process_handle, 
+        base_address, 
+        known_hp_value, 
+        Vec::new());
     println!("First scan found addresses: {:?}", first_scan_addresses.len());
     
     println!("Input new HP value: ");    
@@ -215,7 +222,11 @@ fn main() -> std::io::Result<()> {
 
     
     // Second scan to confirm the address
-    let second_scan_addresses: Vec<u64> = scan_memory_for_i32(&process_handle, base_address, known_hp_value, first_scan_addresses);
+    let second_scan_addresses: Vec<u64> = scan_memory_for_u32(
+        &process_handle, 
+        base_address, 
+        known_hp_value, 
+        first_scan_addresses);
     println!("Second scan found addresses: {:?}", second_scan_addresses.len());
 
     if second_scan_addresses.len() < 4 {
