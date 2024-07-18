@@ -1,0 +1,8 @@
+[package]
+name = "we-slay-monsters-injector"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+process-memory = "0.5.0"
+winapi = { version = "0.3", features = ["tlhelp32", "psapi", "handleapi", "processthreadsapi"] }
